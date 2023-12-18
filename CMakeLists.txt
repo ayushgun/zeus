@@ -9,7 +9,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${DEV_WARNINGS} ${SANITIZERS}")
 endif()
 
-add_library(zeus SHARED src/mq.cpp)
+add_library(zeus SHARED src/queue.cpp)
 target_include_directories(zeus PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
