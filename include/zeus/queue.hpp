@@ -72,7 +72,7 @@ class queue {
   template <typename... A>
     requires std::is_nothrow_constructible<T, A&&...>::value
   bool try_emplace(A&&... arguments) noexcept {
-    auto current_head = head.fetch_add(1);
+    auto current_head = head.load(std::memory_order_acquire);
 
     while (true) {
       zeus::slot<T>& slot = slots[get_idx(current_head)];
@@ -103,7 +103,7 @@ class queue {
   /// Enqueues an item using move construction, blocking if the queue is full.
   template <typename P>
     requires std::is_nothrow_constructible<T, P&&>::value
-  void push(const P&& value) noexcept {
+  void push(P&& value) noexcept {
     emplace(std::forward<P>(value));
   }
 
@@ -133,7 +133,7 @@ class queue {
 
     // Block while waiting for an open turn
     do {
-    } while (get_current_turn(current_tail) * 2 !=
+    } while (get_current_turn(current_tail) * 2 + 1 !=
              slot.turn.load(std::memory_order_acquire));
 
     T rv(slot.move());
@@ -147,7 +147,7 @@ class queue {
   /// Attempts to remove and return the front item from the queue. Returns the
   /// item if successful, or an empty optional if the queue is empty.
   std::optional<T> try_pop() noexcept {
-    auto current_tail = tail.fetch_add(1);
+    auto current_tail = tail.load(std::memory_order_acquire);
 
     while (true) {
       zeus::slot<T>& slot = slots[get_idx(current_tail)];
