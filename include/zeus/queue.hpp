@@ -34,7 +34,7 @@ class queue {
     }
 
     for (std::size_t i = 0; i < max_capacity; ++i) {
-      new (&slots[i]) zeus::slot<T>();
+      std::construct_at(&slots[i], zeus::slot<T>());
     }
   }
 
