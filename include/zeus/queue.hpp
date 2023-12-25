@@ -20,21 +20,18 @@ template <regular_type T>
 class queue {
  public:
   /// Constructs a new queue holding items of type T with the provided capacity
-  explicit queue(const std::size_t capacity,
-                 const std::allocator<zeus::slot<T>>& alloc =
-                     std::allocator<zeus::slot<T>>())
-      : max_capacity(capacity), allocator(alloc) {
+  explicit queue(const std::size_t capacity) : max_capacity(capacity) {
     // Add an extra slot to avoid incorrect data overlap in the final slot
-    slots = allocator.allocate(max_capacity + 1);
+    slots = std::make_unique<zeus::slot<T>[]>(max_capacity + 1);
 
     // Ensure that alignment is honored for over-aligned types
-    if (reinterpret_cast<std::size_t>(slots) % alignof(zeus::slot<T>) != 0) {
-      allocator.deallocate(slots, max_capacity + 1);
+    if (reinterpret_cast<std::size_t>(slots.get()) % alignof(zeus::slot<T>) !=
+        0) {
       throw std::bad_alloc();
     }
 
     for (std::size_t i = 0; i < max_capacity; ++i) {
-      std::construct_at(&slots[i], zeus::slot<T>());
+      new (&slots[i]) zeus::slot<T>();
     }
   }
 
@@ -43,8 +40,6 @@ class queue {
     for (std::size_t i = 0; i < max_capacity; ++i) {
       slots[i].~slot();
     }
-
-    allocator.deallocate(slots, max_capacity + 1);
   }
 
   queue(const queue&) = delete;
@@ -201,8 +196,7 @@ class queue {
   }
 
   const std::size_t max_capacity;
-  std::allocator<zeus::slot<T>> allocator [[no_unique_address]];
-  zeus::slot<T>* slots;
+  std::unique_ptr<zeus::slot<T>[]> slots;
 
   alignas(hw_inf_size) std::atomic_size_t head;
   alignas(hw_inf_size) std::atomic_size_t tail;
